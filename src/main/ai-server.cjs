@@ -93,6 +93,37 @@ function withinScopes(available, required) {
   return required.every((scope) => available.includes(scope));
 }
 
+function makeChangeActivity(kind, filePath, before, after, extra = {}) {
+  const oldText = String(before ?? '');
+  const newText = String(after ?? '');
+  if (oldText === newText) return { kind, path: filePath, changed: false, ...extra };
+  const oldLines = oldText.split(/\r?\n/);
+  const newLines = newText.split(/\r?\n/);
+  let start = 0;
+  while (start < oldLines.length && start < newLines.length && oldLines[start] === newLines[start]) start += 1;
+  let oldEnd = oldLines.length;
+  let newEnd = newLines.length;
+  while (oldEnd > start && newEnd > start && oldLines[oldEnd - 1] === newLines[newEnd - 1]) {
+    oldEnd -= 1;
+    newEnd -= 1;
+  }
+  const removed = oldLines.slice(start, oldEnd);
+  const added = newLines.slice(start, newEnd);
+  const cap = 200;
+  return {
+    kind,
+    path: filePath,
+    changed: true,
+    startLine: start + 1,
+    removed: removed.slice(0, cap),
+    added: added.slice(0, cap),
+    removedTotal: removed.length,
+    addedTotal: added.length,
+    truncated: removed.length > cap || added.length > cap,
+    ...extra,
+  };
+}
+
 class AIServer {
   constructor({ settings, workspace, tests, compilers, runner, bridge, appVersion, onModeChange, onSettingsChange, onCompilersChanged }) {
     this.settings = settings;
@@ -450,6 +481,7 @@ class AIServer {
         status: 200,
         durationMs: Date.now() - started,
         summary: result?.summary || '',
+        activity: result?.activity || null,
       });
       json(res, 200, result);
     } catch (error) {
@@ -461,6 +493,7 @@ class AIServer {
         status,
         durationMs: Date.now() - started,
         summary: error.message,
+        activity: null,
       });
       if (!res.headersSent) {
         json(res, status, {
@@ -473,7 +506,7 @@ class AIServer {
     }
   }
 
-  record({ session, method, path, status, durationMs, summary }) {
+  record({ session, method, path, status, durationMs, summary, activity = null }) {
     this.audit.push({
       at: Date.now(),
       kind: 'api',
@@ -486,7 +519,17 @@ class AIServer {
       summary,
     });
     this.audit = this.audit.slice(-250);
-    this.bridge.broadcast('ai:activity', { type: 'api', method, path, status, clientName: session.clientName, at: Date.now() });
+    this.bridge.broadcast('ai:activity', {
+      type: 'api',
+      method,
+      path,
+      status,
+      durationMs,
+      summary,
+      activity,
+      clientName: session.clientName,
+      at: Date.now(),
+    });
   }
 
   async handleLogin(req, res) {
@@ -821,11 +864,21 @@ class AIServer {
     if (!args.path) throw new ApiError(400, 'MISSING_PATH', '缺少 path 参数');
     if (typeof args.content !== 'string') throw new ApiError(400, 'MISSING_CONTENT', 'content 必须是字符串');
     await this.assertBufferClean(args.path);
+    let before = '';
+    try {
+      before = (await this.workspace.read(args.path)).content;
+    } catch {
+      before = '';
+    }
     const result = await this.workspace.write(args.path, args.content);
     this.bridge.broadcast('workspace:file-changed', { path: result.path, source: 'ai' });
     this.bridge.broadcast('workspace:refresh', {});
     await this.bridge.call('editor.syncFile', { path: result.path }).catch(() => {});
-    return { file: result, summary: `已写入 ${result.path}（${result.size} 字节）` };
+    return {
+      file: result,
+      summary: `已写入 ${result.path}（${result.size} 字节）`,
+      activity: makeChangeActivity('file-write', result.path, before, args.content),
+    };
   }
 
   async opFileCreate(session, args) {
@@ -837,7 +890,13 @@ class AIServer {
     if (result.type === 'file' && args.open !== false) {
       await this.bridge.call('editor.open', { path: result.path }).catch(() => {});
     }
-    return { ...result, summary: `已创建 ${result.type === 'dir' ? '文件夹' : '文件'} ${result.path}` };
+    return {
+      ...result,
+      summary: `已创建 ${result.type === 'dir' ? '文件夹' : '文件'} ${result.path}`,
+      activity: result.type === 'file'
+        ? makeChangeActivity('file-create', result.path, '', args.content ?? '')
+        : { kind: 'folder-create', path: result.path, changed: false },
+    };
   }
 
   async opFolderCreate(session, args) {
@@ -887,21 +946,36 @@ class AIServer {
 
   async opEditorContent(session, args) {
     if (typeof args.content !== 'string') throw new ApiError(400, 'MISSING_CONTENT', 'content 必须是字符串');
+    const before = await this.bridge.call('editor.get', {}).catch(() => null);
     const editor = await this.bridge.call('editor.setContent', { content: args.content });
-    return { editor, summary: '已替换编辑器内容' };
+    return {
+      editor,
+      summary: '已替换编辑器内容',
+      activity: makeChangeActivity('editor-content', editor?.path || before?.path || '', before?.content || '', args.content),
+    };
   }
 
   async opEditorInsert(session, args) {
     if (typeof args.text !== 'string') throw new ApiError(400, 'MISSING_TEXT', 'text 必须是字符串');
+    const before = await this.bridge.call('editor.get', {}).catch(() => null);
     const editor = await this.bridge.call('editor.insert', { text: args.text, position: args.position });
-    return { editor, summary: '已插入文本' };
+    return {
+      editor,
+      summary: '已插入文本',
+      activity: makeChangeActivity('editor-insert', editor?.path || before?.path || '', before?.content || '', editor?.content || ''),
+    };
   }
 
   async opEditorReplace(session, args) {
     if (typeof args.text !== 'string') throw new ApiError(400, 'MISSING_TEXT', 'text 必须是字符串');
     if (!args.range || typeof args.range !== 'object') throw new ApiError(400, 'MISSING_RANGE', '需要 range 参数');
+    const before = await this.bridge.call('editor.get', {}).catch(() => null);
     const editor = await this.bridge.call('editor.replace', { text: args.text, range: args.range });
-    return { editor, summary: '已替换文本范围' };
+    return {
+      editor,
+      summary: '已替换文本范围',
+      activity: makeChangeActivity('editor-replace', editor?.path || before?.path || '', before?.content || '', editor?.content || ''),
+    };
   }
 
   async opEditorSelect(session, args) {
