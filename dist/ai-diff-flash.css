@@ -1,0 +1,47 @@
+/* AI 代码变更的行内闪烁：新增绿、删除红、替换白 */
+@keyframes ai-flash-add {
+  0% { background: rgba(34, 197, 94, 0.48); }
+  18% { background: rgba(34, 197, 94, 0.38); }
+  100% { background: rgba(34, 197, 94, 0); }
+}
+
+@keyframes ai-flash-del {
+  0% { background: rgba(239, 68, 68, 0.5); }
+  18% { background: rgba(239, 68, 68, 0.38); }
+  100% { background: rgba(239, 68, 68, 0); }
+}
+
+@keyframes ai-flash-replace {
+  0% { background: rgba(241, 245, 249, 0.42); }
+  18% { background: rgba(241, 245, 249, 0.3); }
+  100% { background: rgba(241, 245, 249, 0); }
+}
+
+.monaco-editor .ai-diff-add {
+  animation: ai-flash-add 1.9s ease-out forwards;
+  box-shadow: inset 3px 0 0 rgba(34, 197, 94, 0.95);
+}
+
+.monaco-editor .ai-diff-del {
+  animation: ai-flash-del 1.9s ease-out forwards;
+  box-shadow: inset 3px 0 0 rgba(239, 68, 68, 0.95);
+}
+
+.monaco-editor .ai-diff-replace {
+  animation: ai-flash-replace 1.9s ease-out forwards;
+  box-shadow: inset 3px 0 0 rgba(241, 245, 249, 0.9);
+}
+
+.monaco-editor .ai-diff-del-note {
+  color: #f87171 !important;
+  font-style: italic;
+  opacity: 0.9;
+  margin-left: 9px;
+}
+
+.monaco-editor .ai-diff-add-note {
+  color: #4ade80 !important;
+  font-style: italic;
+  opacity: 0.9;
+  margin-left: 9px;
+}

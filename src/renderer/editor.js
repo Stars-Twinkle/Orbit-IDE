@@ -18,6 +18,9 @@ import CssWorker from '../../node_modules/monaco-editor/esm/vs/language/css/css.
 import HtmlWorker from '../../node_modules/monaco-editor/esm/vs/language/html/html.worker?worker';
 import TsWorker from '../../node_modules/monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
+// 供独立的 AI diff 高亮脚本使用（窗口内闪烁新增/删除/替换）。
+window.__orbitEditorApi = monaco.editor;
+
 self.MonacoEnvironment = {
   getWorker(_, label) {
     if (label === 'json') return new JsonWorker();
