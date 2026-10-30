@@ -353,6 +353,29 @@ func main() {
       </div>
     </div>
     <div class="settings-section">
+      <div class="settings-section-title">AI 可视化</div>
+      <div class="setting-row">
+        <div class="setting-label"><b>AI 操作面板</b><span>显示 AI 操作流与代码 diff</span></div>
+        <div class="setting-control"><button class="switch ${e.aiActivityEnabled!==!1?`on`:``}" id="setAIActivity" aria-label="切换 AI 操作面板"></button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>自动展开操作面板</b><span>AI 第一次操作时自动展开</span></div>
+        <div class="setting-control"><button class="switch ${e.aiActivityAutoOpen!==!1?`on`:``}" id="setAIAutoOpen" aria-label="切换自动展开"></button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>自动切换文件</b><span>AI 修改文件后自动切到对应标签</span></div>
+        <div class="setting-control"><button class="switch ${e.aiAutoSwitch!==!1?`on`:``}" id="setAIAutoSwitch" aria-label="切换自动切换文件"></button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>编辑器内 diff 闪烁</b><span>新增绿、删除红、替换白</span></div>
+        <div class="setting-control"><button class="switch ${e.aiDiffFlash!==!1?`on`:``}" id="setAIDiffFlash" aria-label="切换 diff 闪烁"></button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>闪烁时长</b><span>单次高亮淡出时长，300–3000 ms</span></div>
+        <div class="setting-control"><input type="number" class="num-input" id="setAIDiffDuration" min="300" max="3000" step="100" value="${Number(e.aiDiffFlashDuration)||900}" style="width:72px" /><span class="muted" style="font-size:9px">ms</span></div>
+      </div>
+    </div>
+    <div class="settings-section">
       <div class="settings-section-title">保存与运行</div>
       <div class="setting-row">
         <div class="setting-label"><b>自动保存</b><span>停止输入约 0.9 秒后自动写盘</span></div>
@@ -385,7 +408,7 @@ func main() {
         <div class="setting-control"><button class="mini-btn" id="rescanFromSettings">${m(`refresh`)} 重新扫描</button></div>
       </div>
     </div>
-  `,Z({title:`设置`,subtitle:`调整编码体验与运行环境。`,iconName:`settings`,className:`wide`,content:t,dismissible:!0,buttons:[{label:`完成`,class:`primary`,onClick:()=>!0}]}),de(t),A(`#setFontSize`,t).addEventListener(`change`,e=>Ri({fontSize:Number(e.target.value)})),A(`#setTabSize`,t).addEventListener(`click`,e=>{let n=e.target.closest(`button[data-value]`);n&&(j(`#setTabSize button`,t).forEach(e=>e.classList.toggle(`active`,e===n)),Ri({tabSize:Number(n.dataset.value)}))}),A(`#setWordWrap`,t).addEventListener(`click`,e=>{let n=e.target.closest(`button[data-value]`);n&&(j(`#setWordWrap button`,t).forEach(e=>e.classList.toggle(`active`,e===n)),Ri({wordWrap:n.dataset.value}))});let n=async(e,n)=>{let r=!k.settings[n];A(e,t).classList.toggle(`on`,r),await Ri({[n]:r})};A(`#setMinimap`,t).addEventListener(`click`,()=>n(`#setMinimap`,`minimap`)),A(`#setLigatures`,t).addEventListener(`click`,()=>n(`#setLigatures`,`fontLigatures`)),A(`#setAutoComplete`,t).addEventListener(`click`,async()=>{const v=k.settings.autoComplete!==!1;A(`#setAutoComplete`,t).classList.toggle(`on`,!v);await Ri({autoComplete:!v})}),A(`#setAutoSave`,t).addEventListener(`click`,()=>n(`#setAutoSave`,`autoSave`)),A(`#setO2`,t).addEventListener(`click`,async()=>{const v=k.settings.o2Optimization!==!1;A(`#setO2`,t).classList.toggle(`on`,!v);await Ri({o2Optimization:!v})}),A(`#chooseScanDirs`,t).addEventListener(`click`,async()=>{try{const dirs=await O.invoke(`compilers:chooseScanDirs`);if(Array.isArray(dirs)){L(`已添加编译器扫描目录`,`success`),await O.invoke(`compilers:scan`,{force:!1})}}catch(e){L(e.message||`选择扫描目录失败`,`error`)}}),A(`#openUserData`,t).addEventListener(`click`,()=>O.invoke(`app:openUserData`).catch(()=>{})),A(`#rescanFromSettings`,t).addEventListener(`click`,()=>{Q(),ca()})}function io(){k.activeModal}function ao(){let e=document.createElement(`div`);e.innerHTML=`
+  `,Z({title:`设置`,subtitle:`调整编码体验与运行环境。`,iconName:`settings`,className:`wide`,content:t,dismissible:!0,buttons:[{label:`完成`,class:`primary`,onClick:()=>!0}]}),de(t),A(`#setFontSize`,t).addEventListener(`change`,e=>Ri({fontSize:Number(e.target.value)})),A(`#setTabSize`,t).addEventListener(`click`,e=>{let n=e.target.closest(`button[data-value]`);n&&(j(`#setTabSize button`,t).forEach(e=>e.classList.toggle(`active`,e===n)),Ri({tabSize:Number(n.dataset.value)}))}),A(`#setWordWrap`,t).addEventListener(`click`,e=>{let n=e.target.closest(`button[data-value]`);n&&(j(`#setWordWrap button`,t).forEach(e=>e.classList.toggle(`active`,e===n)),Ri({wordWrap:n.dataset.value}))});let n=async(e,n)=>{let r=!k.settings[n];A(e,t).classList.toggle(`on`,r),await Ri({[n]:r})};A(`#setMinimap`,t).addEventListener(`click`,()=>n(`#setMinimap`,`minimap`)),A(`#setLigatures`,t).addEventListener(`click`,()=>n(`#setLigatures`,`fontLigatures`)),A(`#setAutoComplete`,t).addEventListener(`click`,async()=>{const v=k.settings.autoComplete!==!1;A(`#setAutoComplete`,t).classList.toggle(`on`,!v);await Ri({autoComplete:!v})}),A(`#setAutoSave`,t).addEventListener(`click`,()=>n(`#setAutoSave`,`autoSave`)),A(`#setO2`,t).addEventListener(`click`,async()=>{const v=k.settings.o2Optimization!==!1;A(`#setO2`,t).classList.toggle(`on`,!v);await Ri({o2Optimization:!v})}),A(`#setAIActivity`,t).addEventListener(`click`,async()=>{const v=k.settings.aiActivityEnabled!==!1;A(`#setAIActivity`,t).classList.toggle(`on`,!v);await Ri({aiActivityEnabled:!v})}),A(`#setAIAutoOpen`,t).addEventListener(`click`,async()=>{const v=k.settings.aiActivityAutoOpen!==!1;A(`#setAIAutoOpen`,t).classList.toggle(`on`,!v);await Ri({aiActivityAutoOpen:!v})}),A(`#setAIAutoSwitch`,t).addEventListener(`click`,async()=>{const v=k.settings.aiAutoSwitch!==!1;A(`#setAIAutoSwitch`,t).classList.toggle(`on`,!v);await Ri({aiAutoSwitch:!v})}),A(`#setAIDiffFlash`,t).addEventListener(`click`,async()=>{const v=k.settings.aiDiffFlash!==!1;A(`#setAIDiffFlash`,t).classList.toggle(`on`,!v);await Ri({aiDiffFlash:!v})}),A(`#setAIDiffDuration`,t).addEventListener(`change`,async e=>{const v=Math.max(300,Math.min(3000,Number(e.target.value)||900));e.target.value=String(v);await Ri({aiDiffFlashDuration:v})}),A(`#chooseScanDirs`,t).addEventListener(`click`,async()=>{try{const dirs=await O.invoke(`compilers:chooseScanDirs`);if(Array.isArray(dirs)){L(`已添加编译器扫描目录`,`success`),await O.invoke(`compilers:scan`,{force:!1})}}catch(e){L(e.message||`选择扫描目录失败`,`error`)}}),A(`#openUserData`,t).addEventListener(`click`,()=>O.invoke(`app:openUserData`).catch(()=>{})),A(`#rescanFromSettings`,t).addEventListener(`click`,()=>{Q(),ca()})}function io(){k.activeModal}function ao(){let e=document.createElement(`div`);e.innerHTML=`
     <div class="shortcut-grid">
       ${[[`保存`,`Ctrl+S`],[`全部保存`,`Ctrl+Shift+S`],[`新建文件`,`Ctrl+N`],[`打开文件夹`,`Ctrl+O`],[`快速打开`,`Ctrl+P`],[`命令面板`,`Ctrl+Shift+P`],[`编译`,`Ctrl+Shift+B`],[`运行`,`F5`],[`停止运行`,`Shift+F5`],[`底部面板`,"Ctrl+`"],[`关闭标签`,`Ctrl+W`],[`切换侧边栏`,`Ctrl+B`]].map(([e,t])=>`<div class="shortcut-row"><span>${e}</span><kbd>${t}</kbd></div>`).join(``)}
     </div>
