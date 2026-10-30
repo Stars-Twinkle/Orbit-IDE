@@ -74,6 +74,51 @@ function startupLog(message) {
   }
 }
 
+let workspaceWatcher = null;
+let workspaceWatchTimer = null;
+
+function stopWorkspaceWatcher() {
+  if (workspaceWatcher) {
+    try {
+      workspaceWatcher.close();
+    } catch {
+      // 已关闭。
+    }
+    workspaceWatcher = null;
+  }
+  clearTimeout(workspaceWatchTimer);
+  workspaceWatchTimer = null;
+}
+
+function startWorkspaceWatcher() {
+  stopWorkspaceWatcher();
+  if (!workspace?.isOpen) return;
+  const root = workspace.root;
+  try {
+    workspaceWatcher = fs.watch(root, { recursive: true, persistent: false }, (eventType, filename) => {
+      const name = String(filename || '').replace(/\\/g, '/');
+      if (!name) return;
+      if (/(^|\/)(\.git|node_modules|\.orbit|\.chrome-.*|dist|release)(\/|$)/i.test(name)) return;
+      if (eventType === 'change') {
+        broadcast('workspace:file-changed', { path: name, source: 'watch' });
+      }
+      clearTimeout(workspaceWatchTimer);
+      workspaceWatchTimer = setTimeout(() => {
+        workspaceWatchTimer = null;
+        broadcast('workspace:refresh', { source: 'watch', path: name });
+      }, 220);
+    });
+    workspaceWatcher.on('error', (error) => {
+      startupLog(`workspace watcher error: ${error?.message || error}`);
+      stopWorkspaceWatcher();
+      setTimeout(() => startWorkspaceWatcher(), 800);
+    });
+    startupLog(`workspace watcher started root=${root}`);
+  } catch (error) {
+    startupLog(`workspace watcher failed: ${error?.message || error}`);
+  }
+}
+
 function broadcast(channel, payload) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send(channel, payload);
@@ -278,6 +323,7 @@ async function initializeWorkspace() {
     root = await ensurePlayground();
     await workspace.open(root);
   }
+  startWorkspaceWatcher();
 }
 
 function registerAppProtocol() {
@@ -496,6 +542,7 @@ function registerIpc() {
 
   ipcMain.handle('workspace:open', async (event, rootPath) => {
     const opened = await workspace.open(rootPath);
+    startWorkspaceWatcher();
     settings.set('lastOpenFile', null);
     writeEndpointInfo();
     broadcast('workspace:changed', { ...(await workspacePayload()), root: opened.root });
@@ -509,6 +556,7 @@ function registerIpc() {
     });
     if (result.canceled || !result.filePaths[0]) return null;
     await workspace.open(result.filePaths[0]);
+    startWorkspaceWatcher();
     settings.set('lastOpenFile', null);
     writeEndpointInfo();
     const payload = await workspacePayload();
@@ -812,6 +860,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   isQuitting = true;
   allowClose = true;
+  stopWorkspaceWatcher();
   runner?.stop();
   writeEndpointInfo('stopped');
   aiServer?.stop();
