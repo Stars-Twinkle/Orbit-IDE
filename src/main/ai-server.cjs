@@ -746,6 +746,7 @@ class AIServer {
       wordWrap: data.wordWrap,
       minimap: data.minimap,
       autoSave: data.autoSave,
+      theme: data.theme,
       fontLigatures: data.fontLigatures,
       autoComplete: data.autoComplete,
       o2Optimization: data.o2Optimization,
@@ -1187,7 +1188,7 @@ class AIServer {
   }
 
   async opSettingsPatch(session, args) {
-    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
+    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'theme', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
     const patch = {};
     for (const [key, value] of Object.entries(args.settings || args)) {
       if (!allowed.includes(key)) continue;
@@ -1198,6 +1199,7 @@ class AIServer {
     if ('wordWrap' in patch) patch.wordWrap = ['on', 'off', 'bounded'].includes(patch.wordWrap) ? patch.wordWrap : 'off';
     if ('minimap' in patch) patch.minimap = Boolean(patch.minimap);
     if ('autoSave' in patch) patch.autoSave = Boolean(patch.autoSave);
+    if ('theme' in patch) patch.theme = ['dark', 'light', 'system'].includes(patch.theme) ? patch.theme : 'dark';
     if ('fontLigatures' in patch) patch.fontLigatures = Boolean(patch.fontLigatures);
     if ('autoComplete' in patch) patch.autoComplete = Boolean(patch.autoComplete);
     if ('o2Optimization' in patch) patch.o2Optimization = Boolean(patch.o2Optimization);

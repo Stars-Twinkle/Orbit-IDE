@@ -158,6 +158,7 @@ function serializeSettings() {
     wordWrap: settings.get('wordWrap'),
     minimap: settings.get('minimap'),
     autoSave: settings.get('autoSave'),
+    theme: settings.get('theme'),
     fontLigatures: settings.get('fontLigatures'),
     autoComplete: settings.get('autoComplete'),
     o2Optimization: settings.get('o2Optimization'),
@@ -720,7 +721,7 @@ function registerIpc() {
 
   ipcMain.handle('settings:get', () => serializeSettings());
   ipcMain.handle('settings:patch', async (event, patch) => {
-    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
+    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'theme', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
     const clean = {};
     for (const key of allowed) if (key in patch) clean[key] = patch[key];
     if ('fontSize' in clean) clean.fontSize = Math.max(10, Math.min(32, Number(clean.fontSize) || 14));
@@ -728,6 +729,7 @@ function registerIpc() {
     if ('wordWrap' in clean) clean.wordWrap = ['on', 'off', 'bounded'].includes(clean.wordWrap) ? clean.wordWrap : 'off';
     if ('minimap' in clean) clean.minimap = Boolean(clean.minimap);
     if ('autoSave' in clean) clean.autoSave = Boolean(clean.autoSave);
+    if ('theme' in clean) clean.theme = ['dark', 'light', 'system'].includes(clean.theme) ? clean.theme : 'dark';
     if ('fontLigatures' in clean) clean.fontLigatures = Boolean(clean.fontLigatures);
     if ('autoComplete' in clean) clean.autoComplete = Boolean(clean.autoComplete);
     if ('o2Optimization' in clean) clean.o2Optimization = Boolean(clean.o2Optimization);

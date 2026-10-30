@@ -13,6 +13,7 @@ const DEFAULTS = {
   wordWrap: 'off',
   minimap: true,
   autoSave: false,
+  theme: 'dark',
   fontLigatures: true,
   autoComplete: true,
   o2Optimization: true,
