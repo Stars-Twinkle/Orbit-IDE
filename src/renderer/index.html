@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' ws: http://127.0.0.1:* http://localhost:*;"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbit IDE</title>
+  </head>
+  <body class="mode-oi booting">
+    <div id="boot" class="boot-screen">
+      <div class="boot-orbit" aria-hidden="true">
+        <div class="boot-ring ring-a"></div>
+        <div class="boot-ring ring-b"></div>
+        <div class="boot-core"></div>
+        <div class="boot-satellite"></div>
+      </div>
+      <div class="boot-title">ORBIT<span>IDE</span></div>
+      <div class="boot-status" id="bootStatus">正在校准轨道…</div>
+    </div>
+
+    <div id="app" class="app">
+      <header id="titlebar" class="titlebar">
+        <div class="titlebar-left">
+          <div class="brand" id="brand" title="Orbit IDE">
+            <span class="brand-mark" data-icon="logo"></span>
+            <span class="brand-name">ORBIT</span>
+            <span class="brand-tag">IDE</span>
+          </div>
+          <div class="titlebar-divider"></div>
+          <button class="tb-menu-btn" id="btn-open-folder" title="打开文件夹 (Ctrl+O)">
+            <span data-icon="folder-open"></span>
+            <span class="tb-menu-label">打开</span>
+          </button>
+          <button class="tb-menu-btn" id="btn-palette" title="命令面板 (Ctrl+Shift+P)">
+            <span data-icon="command"></span>
+            <span class="tb-menu-label">命令</span>
+          </button>
+        </div>
+
+        <div class="mode-switch" id="modeSwitch" role="tablist" aria-label="工作模式">
+          <span class="mode-glider" id="modeGlider"></span>
+          <button class="mode-btn" data-mode="oi" role="tab" aria-selected="true">
+            <span class="mode-icon" data-icon="orbit"></span>
+            <span class="mode-copy">
+              <b>OI 模式</b>
+              <small>C++ 竞赛</small>
+            </span>
+          </button>
+          <button class="mode-btn" data-mode="dev" role="tab" aria-selected="false">
+            <span class="mode-icon" data-icon="code"></span>
+            <span class="mode-copy">
+              <b>开发模式</b>
+              <small>多语言</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="titlebar-right">
+          <button class="ai-pill" id="aiPill" title="打开 AI 接入面板">
+            <span class="ai-pulse"></span>
+            <span id="aiPillText">AI 未连接</span>
+          </button>
+          <div class="window-controls">
+            <button class="win-btn" id="win-min" title="最小化"><span data-icon="minimize"></span></button>
+            <button class="win-btn" id="win-max" title="最大化"><span data-icon="maximize"></span></button>
+            <button class="win-btn win-close" id="win-close" title="关闭"><span data-icon="close"></span></button>
+          </div>
+        </div>
+      </header>
+
+      <div class="shell" id="shell">
+        <nav class="activitybar" id="activitybar">
+          <div class="activity-top">
+            <button class="activity-btn active" data-activity="explorer" title="资源管理器">
+              <span data-icon="files"></span>
+              <span class="activity-dot"></span>
+            </button>
+            <button class="activity-btn" data-activity="compilers" title="编译器">
+              <span data-icon="cpu"></span>
+              <span class="activity-dot"></span>
+            </button>
+            <button class="activity-btn" data-activity="ai" title="AI 接入">
+              <span data-icon="sparkles"></span>
+              <span class="activity-badge" id="aiActivityBadge">0</span>
+            </button>
+          </div>
+          <div class="activity-bottom">
+            <button class="activity-btn" data-activity="docs" title="快捷键与帮助">
+              <span data-icon="help"></span>
+            </button>
+            <button class="activity-btn" data-activity="settings" title="设置">
+              <span data-icon="settings"></span>
+            </button>
+            <div class="activity-avatar" title="本地工作区">O</div>
+          </div>
+        </nav>
+
+        <aside class="sidebar" id="sidebar">
+          <section class="side-view active" data-view="explorer">
+            <div class="side-head">
+              <span class="side-eyebrow">工作区</span>
+              <span class="side-title" id="explorerTitle">EXPLORER</span>
+              <div class="side-actions">
+                <button class="icon-btn" id="btn-new-file" title="新建文件 (Ctrl+N)"><span data-icon="plus"></span></button>
+                <button class="icon-btn" id="btn-new-folder" title="新建文件夹"><span data-icon="folder-plus"></span></button>
+                <button class="icon-btn" id="btn-refresh-tree" title="刷新"><span data-icon="refresh"></span></button>
+              </div>
+            </div>
+            <div class="workspace-card" id="workspaceCard">
+              <span class="workspace-icon" data-icon="orbit"></span>
+              <div class="workspace-meta">
+                <b id="workspaceName">Playground</b>
+                <small id="workspacePath">~/Documents/OrbitIDE</small>
+              </div>
+              <button class="icon-btn" id="btn-switch-workspace" title="切换文件夹"><span data-icon="folder-open"></span></button>
+            </div>
+            <div class="tree-scroll" id="treeScroll">
+              <div class="file-tree" id="fileTree"></div>
+            </div>
+            <div class="side-foot">
+              <button class="side-foot-btn" id="btn-collapse-tree"><span data-icon="collapse"></span> 折叠全部</button>
+              <span class="side-count" id="fileCount">0 文件</span>
+            </div>
+          </section>
+
+          <section class="side-view" data-view="compilers">
+            <div class="side-head">
+              <span class="side-eyebrow">工具链</span>
+              <span class="side-title">COMPILERS</span>
+              <div class="side-actions">
+                <button class="icon-btn" id="btn-scan-compilers" title="重新扫描"><span data-icon="refresh"></span></button>
+                <button class="icon-btn" id="btn-add-compiler" title="手动添加"><span data-icon="plus"></span></button>
+              </div>
+            </div>
+            <div class="compiler-scroll" id="compilerPanel"></div>
+          </section>
+        </aside>
+
+        <div class="sidebar-resizer" id="sidebarResizer" title="拖动调整宽度"></div>
+
+        <main class="workbench">
+          <div class="tabs-row">
+            <div class="tabs-scroll" id="tabs"></div>
+            <div class="tabs-actions">
+              <button class="icon-btn" id="btn-new-tab" title="新建文件"><span data-icon="plus"></span></button>
+              <button class="icon-btn" id="btn-tab-more" title="更多"><span data-icon="more"></span></button>
+            </div>
+          </div>
+          <div class="breadcrumbs" id="breadcrumbs">
+            <span class="crumb-muted">未打开文件</span>
+          </div>
+          <div class="editor-wrap">
+            <div id="editor"></div>
+            <div class="welcome" id="welcome"></div>
+            <div class="editor-float" id="editorFloat">
+              <button class="float-btn" id="btn-format" title="格式化文档"><span data-icon="wand"></span></button>
+              <button class="float-btn" id="btn-editor-save" title="保存 (Ctrl+S)"><span data-icon="save"></span></button>
+            </div>
+          </div>
+
+          <div class="bottom-panel" id="bottomPanel">
+            <div class="panel-resizer" id="panelResizer" title="拖动调整高度"></div>
+            <div class="panel-head">
+              <div class="panel-tabs" id="panelTabs">
+                <button class="panel-tab active" data-panel="output"><span data-icon="terminal"></span> 输出</button>
+                <button class="panel-tab" data-panel="problems"><span data-icon="warning"></span> 问题 <span class="count-badge" id="problemsCount">0</span></button>
+                <button class="panel-tab oi-only" data-panel="tests"><span data-icon="flask"></span> 测试点 <span class="count-badge" id="testsCount">0</span></button>
+                <button class="panel-tab" data-panel="terminal"><span data-icon="chevron-right"></span> 终端</button>
+              </div>
+              <div class="panel-actions">
+                <button class="panel-action" id="btn-run" title="运行 (F5)">
+                  <span data-icon="play"></span> 运行
+                </button>
+                <button class="panel-action ghost" id="btn-stop" title="停止 (Shift+F5)" disabled>
+                  <span data-icon="stop"></span>
+                </button>
+                <button class="panel-action ghost" id="btn-clear-output" title="清空"><span data-icon="trash"></span></button>
+                <button class="panel-action ghost" id="btn-close-panel" title="关闭面板 (Ctrl+`)"><span data-icon="chevron-down"></span></button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="panel-view active" data-panel-view="output">
+                <div class="output-meta" id="outputMeta">
+                  <span class="dot ready"></span><span>就绪 · 按 F5 编译并运行当前文件</span>
+                </div>
+                <pre class="output-pre" id="outputPre" aria-live="polite"></pre>
+                <div class="stdin-row" id="stdinRow">
+                  <span class="stdin-prompt">stdin</span>
+                  <input id="stdinInput" spellcheck="false" autocomplete="off" placeholder="程序正在运行 · 输入内容后回车发送" />
+                  <button class="stdin-send" id="btn-send-stdin">发送</button>
+                </div>
+              </div>
+              <div class="panel-view" data-panel-view="problems">
+                <div class="problems-list" id="problemsList"></div>
+              </div>
+              <div class="panel-view" data-panel-view="tests">
+                <div class="cph-tests">
+                  <div class="cph-tests-head">
+                    <div class="cph-tests-title">
+                      <span class="cph-eyebrow">TEST CASES</span>
+                      <span id="testsSummary" class="cph-tests-summary">0 tests</span>
+                    </div>
+                    <div class="cph-tests-actions">
+                      <button class="cph-ghost-btn" id="btn-clear-tests" title="清空全部测试点">清空</button>
+                      <button class="cph-ghost-btn" id="btn-add-case" title="添加测试点">
+                        <span data-icon="plus"></span> 添加
+                      </button>
+                      <button class="cph-run-btn" id="btn-run-tests">
+                        <span data-icon="play"></span> Run All
+                      </button>
+                    </div>
+                  </div>
+                  <div class="cph-case-list" id="caseList"></div>
+                </div>
+              </div>
+              <div class="panel-view" data-panel-view="terminal">
+                <div class="terminal-hint">单次命令 · PowerShell · 工作区根目录</div>
+                <pre class="terminal-pre" id="terminalPre"></pre>
+                <div class="terminal-input-row">
+                  <span class="terminal-prompt" id="terminalPrompt">PS&gt;</span>
+                  <input id="terminalInput" spellcheck="false" autocomplete="off" placeholder="输入命令，回车执行…" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <aside class="ai-drawer" id="aiDrawer" aria-label="AI 接入">
+          <div class="drawer-head">
+            <div>
+              <span class="side-eyebrow">本地控制服务</span>
+              <h2>AI 接入</h2>
+            </div>
+            <button class="icon-btn" id="btn-close-ai" title="关闭"><span data-icon="close"></span></button>
+          </div>
+          <div class="drawer-scroll" id="aiPanel"></div>
+        </aside>
+      </div>
+
+      <footer class="statusbar" id="statusbar">
+        <div class="status-left">
+          <button class="status-mode" id="statusMode" title="切换模式">
+            <span data-icon="orbit"></span><b>OI</b>
+          </button>
+          <button class="status-item status-compiler" id="statusCompiler" title="选择编译器">
+            <span data-icon="cpu"></span><span id="statusCompilerName">检测编译器中…</span>
+          </button>
+          <div class="status-item status-standard" id="statusStandardWrap" title="C++ 标准">
+            <span id="statusStandardLabel">C++17</span>
+            <select id="statusStandard" aria-label="C++ 标准"></select>
+          </div>
+          <button class="status-item" id="statusProblems" title="问题">
+            <span data-icon="warning"></span><span id="statusProblemsText">0</span>
+          </button>
+        </div>
+        <div class="status-right">
+          <button class="status-item status-ai" id="statusAI" title="AI 接入状态">
+            <span class="status-dot"></span><span id="statusAIText">AI 待接入</span>
+          </button>
+          <button class="status-item" id="statusCursor">行 1，列 1</button>
+          <span class="status-item">空格: <span id="statusIndent">4</span></span>
+          <span class="status-item">UTF-8</span>
+          <span class="status-item">LF</span>
+          <span class="status-item status-lang" id="statusLang">C++</span>
+          <span class="status-item status-build" id="statusBuild">就绪</span>
+        </div>
+      </footer>
+    </div>
+
+    <div id="modalRoot" class="modal-root"></div>
+    <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+    <div id="contextMenu" class="context-menu"></div>
+    <script type="module" src="./main.js"></script>
+      <script type="module" src="./header-words.js"></script>
+  </body>
+</html>

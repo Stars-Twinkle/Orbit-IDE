@@ -1,0 +1,24 @@
+{
+  "name": "orbit-ide",
+  "version": "1.0.0",
+  "description": "Orbit IDE — 双模式 AI 原生集成开发环境",
+  "main": "src/main/main.cjs",
+  "author": "Orbit Labs",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build:web": "vite build",
+    "start": "electron .",
+    "package:app": "npm run build:web && node scripts/package-app.mjs",
+    "pack": "npm run package:app",
+    "dist": "npm run package:app",
+    "test": "node scripts/test-runner.cjs && node scripts/test-ai-api.cjs && node scripts/test-workspace.cjs"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "monaco-editor": "0.57.0",
+    "rcedit": "^5.0.2",
+    "vite": "8.3.5"
+  }
+}
