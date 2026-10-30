@@ -93,9 +93,23 @@
     return true;
   }
 
-  function handle(event) {
+  async function handle(event) {
     if (event?.type !== 'api') return;
-    flash(event.activity);
+    const activity = event.activity;
+    if (!activity?.changed || !activity.path) return;
+    // AI 改完文件后先切到对应标签页，再在当前窗口内闪出 diff。
+    if (typeof window.__orbitOpenFile === 'function') {
+      try {
+        await window.__orbitOpenFile(activity.path, {
+          line: activity.startLine || 1,
+          silent: true,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      } catch {
+        // 文件被 OI 策略拒绝或已删除时不切换。
+      }
+    }
+    flash(activity);
   }
 
   const timer = setInterval(() => {
