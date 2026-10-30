@@ -3,6 +3,12 @@
   let api = window.orbit;
   let editorApi = window.__orbitEditorApi || window.__orbitMonaco;
   let bound = false;
+  let featureSettings = { aiDiffFlash: true, aiAutoSwitch: true, aiDiffFlashDuration: 900 };
+
+  function applyDuration() {
+    const duration = Math.max(300, Math.min(3000, Number(featureSettings.aiDiffFlashDuration) || 900));
+    document.documentElement.style.setProperty('--ai-diff-duration', `${duration}ms`);
+  }
 
   const norm = (value) => String(value || '').replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
 
@@ -23,6 +29,7 @@
   }
 
   function flash(activity) {
+    if (featureSettings.aiDiffFlash === false) return false;
     if (!editorApi || !activity || activity.changed === false || !activity.path) return false;
     const model = findModel(activity.path);
     if (!model) return false;
@@ -83,13 +90,14 @@
     }
 
     const ids = model.deltaDecorations([], decorations);
+    const duration = Math.max(300, Math.min(3000, Number(featureSettings.aiDiffFlashDuration) || 900));
     setTimeout(() => {
       try {
         model.deltaDecorations(ids, []);
       } catch {
         // 文件已关闭或模型已销毁。
       }
-    }, 1000);
+    }, duration + 100);
     return true;
   }
 
@@ -98,7 +106,7 @@
     const activity = event.activity;
     if (!activity?.changed || !activity.path) return;
     // AI 改完文件后先切到对应标签页，再在当前窗口内闪出 diff。
-    if (typeof window.__orbitOpenFile === 'function') {
+    if (typeof window.__orbitOpenFile === 'function' && featureSettings.aiAutoSwitch !== false) {
       try {
         await window.__orbitOpenFile(activity.path, {
           line: activity.startLine || 1,
@@ -117,6 +125,16 @@
     editorApi = editorApi || window.__orbitEditorApi || window.__orbitMonaco;
     if (!api || !editorApi || bound) return;
     bound = true;
+    api.invoke('settings:get')
+      .then((next) => {
+        featureSettings = { ...featureSettings, ...(next || {}) };
+        applyDuration();
+      })
+      .catch(() => {});
+    api.on('settings:changed', (next) => {
+      featureSettings = { ...featureSettings, ...(next || {}) };
+      applyDuration();
+    });
     api.on('ai:activity', handle);
     clearInterval(timer);
   }, 250);

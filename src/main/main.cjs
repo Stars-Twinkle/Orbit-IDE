@@ -161,6 +161,11 @@ function serializeSettings() {
     fontLigatures: settings.get('fontLigatures'),
     autoComplete: settings.get('autoComplete'),
     o2Optimization: settings.get('o2Optimization'),
+    aiActivityEnabled: settings.get('aiActivityEnabled'),
+    aiActivityAutoOpen: settings.get('aiActivityAutoOpen'),
+    aiAutoSwitch: settings.get('aiAutoSwitch'),
+    aiDiffFlash: settings.get('aiDiffFlash'),
+    aiDiffFlashDuration: settings.get('aiDiffFlashDuration'),
     compilerScanDirs: settings.get('compilerScanDirs'),
     aiPort: settings.get('aiPort'),
     oiPanelHeight: settings.get('oiPanelHeight'),
@@ -715,7 +720,7 @@ function registerIpc() {
 
   ipcMain.handle('settings:get', () => serializeSettings());
   ipcMain.handle('settings:patch', async (event, patch) => {
-    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'oiPanelHeight'];
+    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
     const clean = {};
     for (const key of allowed) if (key in patch) clean[key] = patch[key];
     if ('fontSize' in clean) clean.fontSize = Math.max(10, Math.min(32, Number(clean.fontSize) || 14));
@@ -726,6 +731,11 @@ function registerIpc() {
     if ('fontLigatures' in clean) clean.fontLigatures = Boolean(clean.fontLigatures);
     if ('autoComplete' in clean) clean.autoComplete = Boolean(clean.autoComplete);
     if ('o2Optimization' in clean) clean.o2Optimization = Boolean(clean.o2Optimization);
+    if ('aiActivityEnabled' in clean) clean.aiActivityEnabled = Boolean(clean.aiActivityEnabled);
+    if ('aiActivityAutoOpen' in clean) clean.aiActivityAutoOpen = Boolean(clean.aiActivityAutoOpen);
+    if ('aiAutoSwitch' in clean) clean.aiAutoSwitch = Boolean(clean.aiAutoSwitch);
+    if ('aiDiffFlash' in clean) clean.aiDiffFlash = Boolean(clean.aiDiffFlash);
+    if ('aiDiffFlashDuration' in clean) clean.aiDiffFlashDuration = Math.max(300, Math.min(3000, Number(clean.aiDiffFlashDuration) || 900));
     if ('oiPanelHeight' in clean) clean.oiPanelHeight = Math.max(140, Math.min(600, Number(clean.oiPanelHeight) || 260));
     settings.patch(clean);
     broadcast('settings:changed', serializeSettings());

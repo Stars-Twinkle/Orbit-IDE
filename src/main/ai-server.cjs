@@ -749,6 +749,11 @@ class AIServer {
       fontLigatures: data.fontLigatures,
       autoComplete: data.autoComplete,
       o2Optimization: data.o2Optimization,
+      aiActivityEnabled: data.aiActivityEnabled,
+      aiActivityAutoOpen: data.aiActivityAutoOpen,
+      aiAutoSwitch: data.aiAutoSwitch,
+      aiDiffFlash: data.aiDiffFlash,
+      aiDiffFlashDuration: data.aiDiffFlashDuration,
       aiPort: data.aiPort,
       oiPanelHeight: data.oiPanelHeight,
       recentWorkspaces: data.recentWorkspaces,
@@ -1182,7 +1187,7 @@ class AIServer {
   }
 
   async opSettingsPatch(session, args) {
-    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'oiPanelHeight'];
+    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
     const patch = {};
     for (const [key, value] of Object.entries(args.settings || args)) {
       if (!allowed.includes(key)) continue;
@@ -1196,6 +1201,11 @@ class AIServer {
     if ('fontLigatures' in patch) patch.fontLigatures = Boolean(patch.fontLigatures);
     if ('autoComplete' in patch) patch.autoComplete = Boolean(patch.autoComplete);
     if ('o2Optimization' in patch) patch.o2Optimization = Boolean(patch.o2Optimization);
+    if ('aiActivityEnabled' in patch) patch.aiActivityEnabled = Boolean(patch.aiActivityEnabled);
+    if ('aiActivityAutoOpen' in patch) patch.aiActivityAutoOpen = Boolean(patch.aiActivityAutoOpen);
+    if ('aiAutoSwitch' in patch) patch.aiAutoSwitch = Boolean(patch.aiAutoSwitch);
+    if ('aiDiffFlash' in patch) patch.aiDiffFlash = Boolean(patch.aiDiffFlash);
+    if ('aiDiffFlashDuration' in patch) patch.aiDiffFlashDuration = Math.max(300, Math.min(3000, Number(patch.aiDiffFlashDuration) || 900));
     if ('oiPanelHeight' in patch) patch.oiPanelHeight = Math.max(140, Math.min(600, Number(patch.oiPanelHeight) || 260));
     this.settings.patch(patch);
     this.onSettingsChange(patch);

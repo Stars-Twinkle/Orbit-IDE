@@ -1,6 +1,7 @@
 // AI 操作可视化：在窗口内实时显示 AI 做了什么、改了哪个文件哪几行。
 (function () {
   let api = window.orbit;
+  let featureSettings = { aiActivityEnabled: true, aiActivityAutoOpen: true };
   const state = {
     items: [],
     open: false,
@@ -187,16 +188,37 @@
   }
 
   function add(event) {
+    if (featureSettings.aiActivityEnabled === false) return;
     state.items.unshift(makeItem(event));
     state.items = state.items.slice(0, 120);
     const toggle = document.querySelector('#aiActivityToggle');
     toggle?.classList.add('live');
     state.unread += 1;
     render();
-    if (!state.autoOpened) {
+    if (featureSettings.aiActivityAutoOpen !== false && !state.autoOpened) {
       state.autoOpened = true;
       setOpen(true);
     }
+  }
+
+  function applyFeatureSettings() {
+    const enabled = featureSettings.aiActivityEnabled !== false;
+    const toggle = document.querySelector('#aiActivityToggle');
+    const panel = document.querySelector('#aiActivityPanel');
+    if (toggle) toggle.style.display = enabled ? '' : 'none';
+    if (!enabled) {
+      if (panel) panel.classList.remove('open');
+      state.open = false;
+    }
+  }
+
+  async function loadFeatureSettings() {
+    try {
+      featureSettings = { ...featureSettings, ...(await api.invoke('settings:get')) };
+    } catch {
+      // 保持默认开启。
+    }
+    applyFeatureSettings();
   }
 
   function build() {
@@ -240,6 +262,11 @@
     if (!api || state.bound) return;
     if (!document.querySelector('#aiActivityPanel') && !build()) return;
     state.bound = true;
+    loadFeatureSettings();
+    api.on('settings:changed', (next) => {
+      featureSettings = { ...featureSettings, ...(next || {}) };
+      applyFeatureSettings();
+    });
     api.on('ai:activity', add);
     api.on('ai:login-request', (request) => {
       add({
