@@ -12,6 +12,7 @@ const { Runner } = require('./runner.cjs');
 const { AIServer } = require('./ai-server.cjs');
 const { newFileTemplate, isOiAllowed } = require('./languages.cjs');
 const { LspManager } = require('./lsp.cjs');
+const { LspInstaller } = require('./lsp-installer.cjs');
 const APP_VERSION = app.getVersion();
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || '';
 const isDev = Boolean(DEV_URL);
@@ -51,6 +52,7 @@ let compilers = null;
 let runner = null;
 let aiServer = null;
 let lspManager = null;
+let lspInstaller = null;
 let isQuitting = false;
 let allowClose = false;
 
@@ -758,8 +760,21 @@ function registerIpc() {
   });
   ipcMain.handle('ai:copyEndpoint', () => aiServer.info().endpoint);
 
-  ipcMain.handle('lsp:status', () => lspManager?.status() || { available: {} });
+  ipcMain.handle('lsp:status', async () => ({
+    ...(lspManager?.status() || { available: {} }),
+    downloads: await lspInstaller?.status(),
+  }));
   ipcMain.handle('lsp:completion', async (event, payload) => lspManager?.completion(payload) || { items: [], isIncomplete: false });
+  ipcMain.handle('lsp:install', async (event, id) => {
+    const result = await lspInstaller.install(id);
+    lspManager?.invalidate();
+    return result;
+  });
+  ipcMain.handle('lsp:uninstall', async (event, id) => {
+    const result = await lspInstaller.uninstall(id);
+    lspManager?.invalidate();
+    return result;
+  });
 
   ipcMain.handle('editor:pushState', (event, state) => {
     appState.editor = state;
@@ -814,7 +829,8 @@ async function main() {
     emit: (event) => broadcast('run:event', event),
   });
   await initializeWorkspace();
-  lspManager = new LspManager({ getRoot: () => workspace?.root });
+  lspInstaller = new LspInstaller(app.getPath('userData'));
+  lspManager = new LspManager({ getRoot: () => workspace?.root, installer: lspInstaller });
   startupLog(`workspace ready root=${workspace.root}`);
   registerIpc();
   registerAppProtocol();

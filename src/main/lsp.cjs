@@ -85,11 +85,12 @@ function toMonacoCompletion(item, defaultRange) {
 }
 
 class LspClient {
-  constructor(language, command, args, root) {
+  constructor(language, command, args, root, env) {
     this.language = language;
     this.command = command;
     this.args = args;
     this.root = root;
+    this.env = env || process.env;
     this.proc = null;
     this.buffer = Buffer.alloc(0);
     this.nextId = 1;
@@ -114,7 +115,7 @@ class LspClient {
     const command = useShell ? `"${this.command}"` : this.command;
     this.proc = spawn(command, this.args, {
       cwd: this.root,
-      env: { ...process.env },
+      env: { ...this.env },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       shell: useShell,
@@ -308,6 +309,7 @@ class LspClient {
 class LspManager {
   constructor(options = {}) {
     this.getRoot = options.getRoot || (() => null);
+    this.installer = options.installer || null;
     this.servers = new Map();
     this.commandCache = new Map();
     this.statusCache = null;
@@ -316,6 +318,16 @@ class LspManager {
 
   commandFor(language) {
     if (this.commandCache.has(language)) return this.commandCache.get(language);
+    const installed = this.installer?.getCommand(language);
+    if (installed) {
+      this.commandCache.set(language, {
+        command: installed.command,
+        args: installed.args,
+        env: installed.env,
+        source: installed.source,
+      });
+      return this.commandCache.get(language);
+    }
     const spec = SERVER_SPECS[language];
     if (!spec) {
       this.commandCache.set(language, null);
@@ -354,7 +366,7 @@ class LspManager {
     const key = `${language}:${root}`;
     let server = this.servers.get(key);
     if (!server) {
-      server = new LspClient(language, found.command, found.args, root);
+      server = new LspClient(language, found.command, found.args, root, found.env);
       this.servers.set(key, server);
     }
     await server.start();
