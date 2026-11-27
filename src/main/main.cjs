@@ -11,6 +11,7 @@ const { CompilerManager } = require('./compilers.cjs');
 const { Runner } = require('./runner.cjs');
 const { AIServer } = require('./ai-server.cjs');
 const { newFileTemplate, isOiAllowed } = require('./languages.cjs');
+const { LspManager } = require('./lsp.cjs');
 const APP_VERSION = app.getVersion();
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || '';
 const isDev = Boolean(DEV_URL);
@@ -49,6 +50,7 @@ let tests = null;
 let compilers = null;
 let runner = null;
 let aiServer = null;
+let lspManager = null;
 let isQuitting = false;
 let allowClose = false;
 
@@ -545,6 +547,8 @@ function registerIpc() {
   });
 
   ipcMain.handle('workspace:open', async (event, rootPath) => {
+    lspManager?.stopAll();
+    lspManager?.invalidate();
     const opened = await workspace.open(rootPath);
     startWorkspaceWatcher();
     settings.set('lastOpenFile', null);
@@ -559,6 +563,8 @@ function registerIpc() {
       properties: ['openDirectory'],
     });
     if (result.canceled || !result.filePaths[0]) return null;
+    lspManager?.stopAll();
+    lspManager?.invalidate();
     await workspace.open(result.filePaths[0]);
     startWorkspaceWatcher();
     settings.set('lastOpenFile', null);
@@ -752,6 +758,9 @@ function registerIpc() {
   });
   ipcMain.handle('ai:copyEndpoint', () => aiServer.info().endpoint);
 
+  ipcMain.handle('lsp:status', () => lspManager?.status() || { available: {} });
+  ipcMain.handle('lsp:completion', async (event, payload) => lspManager?.completion(payload) || { items: [], isIncomplete: false });
+
   ipcMain.handle('editor:pushState', (event, state) => {
     appState.editor = state;
     if (state?.path) appState.lastActivePath = state.path;
@@ -805,6 +814,7 @@ async function main() {
     emit: (event) => broadcast('run:event', event),
   });
   await initializeWorkspace();
+  lspManager = new LspManager({ getRoot: () => workspace?.root });
   startupLog(`workspace ready root=${workspace.root}`);
   registerIpc();
   registerAppProtocol();
@@ -860,6 +870,7 @@ app.on('before-quit', () => {
   isQuitting = true;
   allowClose = true;
   stopWorkspaceWatcher();
+  lspManager?.stopAll();
   runner?.stop();
   writeEndpointInfo('stopped');
   aiServer?.stop();
