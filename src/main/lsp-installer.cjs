@@ -143,7 +143,65 @@ class LspInstaller {
     await execFileAsync('tar.exe', args, { windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
   }
 
-  async install(id) {
+  async downloadToFile(spec, archive, onProgress) {
+    const urls = [spec.url];
+    if (/^https:\/\/(github\.com|raw\.githubusercontent\.com)\//i.test(spec.url)) {
+      urls.push(`https://ghfast.top/${spec.url}`);
+    }
+    let lastError = null;
+    for (const url of urls) {
+      await fsp.rm(archive, { force: true });
+      try {
+        const response = await fetch(url, { redirect: 'follow' });
+        if (!response.ok || !response.body) {
+          lastError = new Error(`HTTP ${response.status}`);
+          continue;
+        }
+        const total = Number(response.headers.get('content-length')) || 0;
+        const handle = await fsp.open(archive, 'w');
+        const reader = response.body.getReader();
+        const startedAt = Date.now();
+        let received = 0;
+        let lastEmit = 0;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+            await handle.write(value);
+            received += value.byteLength;
+            const now = Date.now();
+            if (now - lastEmit > 180) {
+              lastEmit = now;
+              const elapsed = Math.max(0.2, (now - startedAt) / 1000);
+              const speed = received / elapsed;
+              const percent = total ? Math.min(99, Math.round((received / total) * 100)) : null;
+              const eta = total && speed > 0 ? Math.max(0, Math.ceil((total - received) / speed)) : null;
+              onProgress?.({
+                id: spec.id || null,
+                phase: 'download',
+                received,
+                total,
+                percent,
+                bytesPerSecond: Math.round(speed),
+                etaSeconds: eta,
+              });
+            }
+          }
+        } finally {
+          await handle.close();
+          reader.releaseLock?.();
+        }
+        onProgress?.({ phase: 'extract', received, total, percent: total ? 100 : null, bytesPerSecond: 0, etaSeconds: 0 });
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw new Error(`下载失败：${lastError?.message || '网络错误'}`);
+  }
+
+  async install(id, onProgress) {
     const spec = SERVERS[id];
     if (!spec) throw new Error('未知语言服务');
     if (spec.manual) throw new Error(spec.detail);
@@ -152,23 +210,11 @@ class LspInstaller {
     const tmp = path.join(this.root, '.downloads', `${id}-${Date.now()}`);
     await fsp.mkdir(tmp, { recursive: true });
     const archive = path.join(tmp, `payload.${spec.archive === 'tgz' ? 'tgz' : 'zip'}`);
+    spec.id = id;
 
-    const urls = [spec.url];
-    if (/^https:\/\/(github\.com|raw\.githubusercontent\.com)\//i.test(spec.url)) urls.push(`https://ghfast.top/${spec.url}`);
-    let response = null;
-    let lastError = null;
-    for (const url of urls) {
-      try {
-        response = await fetch(url, { redirect: 'follow' });
-        if (response.ok) break;
-        lastError = new Error(`HTTP ${response.status}`);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    if (!response?.ok) throw new Error(`下载失败：${lastError?.message || '网络错误'}`);
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fsp.writeFile(archive, buffer);
+    onProgress?.({ phase: 'download', received: 0, total: 0, percent: 0, bytesPerSecond: 0, etaSeconds: null });
+    await this.downloadToFile(spec, archive, onProgress);
+    onProgress?.({ phase: 'extract', received: 0, total: 0, percent: 100, bytesPerSecond: 0, etaSeconds: 0 });
 
     const extractDir = path.join(tmp, 'unpacked');
     await this.extract(archive, extractDir, spec.archive);
@@ -199,6 +245,7 @@ class LspInstaller {
     };
     await fsp.writeFile(this.manifestPath(id), JSON.stringify(manifest, null, 2), 'utf8');
     await fsp.rm(tmp, { recursive: true, force: true });
+    onProgress?.({ phase: 'done', received: 0, total: 0, percent: 100, bytesPerSecond: 0, etaSeconds: 0 });
     return manifest;
   }
 

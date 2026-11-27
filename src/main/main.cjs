@@ -766,7 +766,9 @@ function registerIpc() {
   }));
   ipcMain.handle('lsp:completion', async (event, payload) => lspManager?.completion(payload) || { items: [], isIncomplete: false });
   ipcMain.handle('lsp:install', async (event, id) => {
-    const result = await lspInstaller.install(id);
+    const result = await lspInstaller.install(id, (progress) => {
+      broadcast('lsp:download-progress', { ...progress, id });
+    });
     lspManager?.invalidate();
     return result;
   });

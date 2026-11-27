@@ -1,6 +1,40 @@
 // 设置中的语言服务可选下载项。
 (function () {
   const IDS = ['clangd', 'pyright', 'rust-analyzer', 'gopls', 'yaml', 'bash'];
+  function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${Math.round(bytes)} B`;
+  }
+
+  function formatEta(seconds) {
+    if (seconds === null || seconds === undefined) return '';
+    if (seconds < 60) return `${Math.max(1, Math.ceil(seconds))} 秒`;
+    return `${Math.floor(seconds / 60)} 分 ${Math.ceil(seconds % 60)} 秒`;
+  }
+
+  function progressText(progress) {
+    if (!progress) return '';
+    if (progress.phase === 'extract') return '下载完成，正在解压…';
+    if (progress.phase === 'done') return '安装完成';
+    if (progress.phase !== 'download') return '';
+    const speed = progress.bytesPerSecond ? `${formatBytes(progress.bytesPerSecond)}/s` : '';
+    const eta = formatEta(progress.etaSeconds);
+    if (progress.percent !== null && progress.percent !== undefined && progress.total) {
+      return `${progress.percent}% · ${formatBytes(progress.received)} / ${formatBytes(progress.total)}${speed ? ` · ${speed}` : ''}${eta ? ` · 剩余 ${eta}` : ''}`;
+    }
+    return `${formatBytes(progress.received)}${speed ? ` · ${speed}` : ''}`;
+  }
+
+  if (window.orbit?.on) {
+    window.orbit.on('lsp:download-progress', (progress) => {
+      if (!IDS.includes(progress?.id)) return;
+      setState(progress.id, progressText(progress));
+    });
+  }
+
   let loading = false;
 
   function el(id) {

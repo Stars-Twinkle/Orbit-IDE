@@ -17,6 +17,7 @@ const EVENT_CHANNELS = new Set([
   'mode:changed',
   'compilers:changed',
   'settings:changed',
+  'lsp:download-progress',
   'tests:changed',
   'tests:results',
   'app:notify',
