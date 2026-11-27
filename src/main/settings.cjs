@@ -15,7 +15,6 @@ const DEFAULTS = {
   autoSave: false,
   theme: 'dark',
   fontLigatures: true,
-  autoComplete: true,
   o2Optimization: true,
   aiActivityEnabled: true,
   aiActivityAutoOpen: true,

@@ -11,7 +11,6 @@ const { CompilerManager } = require('./compilers.cjs');
 const { Runner } = require('./runner.cjs');
 const { AIServer } = require('./ai-server.cjs');
 const { newFileTemplate, isOiAllowed } = require('./languages.cjs');
-const { collectCompletionWords } = require('./headers.cjs');
 const APP_VERSION = app.getVersion();
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || '';
 const isDev = Boolean(DEV_URL);
@@ -160,7 +159,6 @@ function serializeSettings() {
     autoSave: settings.get('autoSave'),
     theme: settings.get('theme'),
     fontLigatures: settings.get('fontLigatures'),
-    autoComplete: settings.get('autoComplete'),
     o2Optimization: settings.get('o2Optimization'),
     aiActivityEnabled: settings.get('aiActivityEnabled'),
     aiActivityAutoOpen: settings.get('aiActivityAutoOpen'),
@@ -695,16 +693,6 @@ function registerIpc() {
   ipcMain.handle('terminal:exec', async (event, { command, cwd, timeoutMs }) => runner.exec(command, { cwd, timeoutMs }));
 
   ipcMain.handle('tests:read', async () => tests.read());
-  ipcMain.handle('completion:words', async (event, options = {}) => {
-    const resolved = compilers.resolve('cpp');
-    const executable = resolved.compiler?.executable;
-    startupLog(`completion scan compiler=${executable || 'none'}`);
-    return collectCompletionWords({
-      executable,
-      userData: app.getPath('userData'),
-      force: Boolean(options.force),
-    });
-  });
   ipcMain.handle('tests:write', async (event, data) => {
     const stored = await tests.write(data);
     broadcast('tests:changed', stored);
@@ -721,7 +709,7 @@ function registerIpc() {
 
   ipcMain.handle('settings:get', () => serializeSettings());
   ipcMain.handle('settings:patch', async (event, patch) => {
-    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'theme', 'fontLigatures', 'autoComplete', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
+    const allowed = ['fontSize', 'tabSize', 'wordWrap', 'minimap', 'autoSave', 'theme', 'fontLigatures', 'o2Optimization', 'aiActivityEnabled', 'aiActivityAutoOpen', 'aiAutoSwitch', 'aiDiffFlash', 'aiDiffFlashDuration', 'oiPanelHeight'];
     const clean = {};
     for (const key of allowed) if (key in patch) clean[key] = patch[key];
     if ('fontSize' in clean) clean.fontSize = Math.max(10, Math.min(32, Number(clean.fontSize) || 14));
@@ -731,7 +719,6 @@ function registerIpc() {
     if ('autoSave' in clean) clean.autoSave = Boolean(clean.autoSave);
     if ('theme' in clean) clean.theme = ['dark', 'light', 'system'].includes(clean.theme) ? clean.theme : 'dark';
     if ('fontLigatures' in clean) clean.fontLigatures = Boolean(clean.fontLigatures);
-    if ('autoComplete' in clean) clean.autoComplete = Boolean(clean.autoComplete);
     if ('o2Optimization' in clean) clean.o2Optimization = Boolean(clean.o2Optimization);
     if ('aiActivityEnabled' in clean) clean.aiActivityEnabled = Boolean(clean.aiActivityEnabled);
     if ('aiActivityAutoOpen' in clean) clean.aiActivityAutoOpen = Boolean(clean.aiActivityAutoOpen);
