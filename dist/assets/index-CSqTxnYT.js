@@ -379,6 +379,33 @@ func main() {
         <div class="setting-control"><button class="mini-btn" id="chooseScanDirs">选择目录</button></div>
       </div>
     </div>
+    <div class="settings-section" id="lspSettingsSection">
+      <div class="settings-section-title">语言服务</div>
+      <div class="setting-row">
+        <div class="setting-label"><b>C/C++ 语言服务</b><span>clangd · 补全、跳转、诊断</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-clangd" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-clangd">下载</button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>Python 语言服务</b><span>Pyright · 类型检查与补全</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-pyright" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-pyright">下载</button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>Rust 语言服务</b><span>rust-analyzer · 语义补全与诊断</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-rust-analyzer" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-rust-analyzer">下载</button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>Go 语言服务</b><span>gopls · 语义补全与诊断</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-gopls" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-gopls">文档</button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>YAML 语言服务</b><span>yaml-language-server · schema 补全</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-yaml" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-yaml">下载</button></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><b>Shell 语言服务</b><span>bash-language-server · Shell 补全</span></div>
+        <div class="setting-control"><span class="lsp-server-state" id="lsp-state-bash" style="font-size:9px;color:var(--dim)">检查中…</span><button class="mini-btn" id="lsp-action-bash">下载</button></div>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-section-title">关于</div>
       <div class="setting-row">
